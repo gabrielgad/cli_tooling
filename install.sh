@@ -3,11 +3,14 @@
 # Rust Development Tools Installer - Bash Version
 # This script installs selected Rust-based development tools with emoji support detection
 
-set -e  # Exit on error
+set -euo pipefail  # Exit on error, undefined vars, and pipe failures
+
+# Trap to show where script exits unexpectedly
+trap 'echo "Script exited at line $LINENO"' EXIT
 
 # Detect emoji support
 SUPPORTS_EMOJI="true"
-if [ "${INSTALLER_EMOJI_SUPPORT}" = "0" ]; then
+if [ "${INSTALLER_EMOJI_SUPPORT:-1}" = "0" ]; then
     SUPPORTS_EMOJI="false"
 fi
 
@@ -98,6 +101,36 @@ check_rust_installation() {
     echo "  $cargo_version"
 }
 
+# Function to analyze installation failure and return reason
+analyze_failure() {
+    local stderr_output="$1"
+    
+    # Check for common failure patterns
+    if echo "$stderr_output" | grep -q "Could not find openssl via pkg-config"; then
+        echo "Missing OpenSSL development libraries (install pkg-config and libssl-dev)"
+    elif echo "$stderr_output" | grep -q "pkg-config command could not be found"; then
+        echo "Missing pkg-config (install with: apt install pkg-config)"
+    elif echo "$stderr_output" | grep -q "linker.*not found"; then
+        echo "Missing C/C++ compiler or linker"
+    elif echo "$stderr_output" | grep -q "permission denied"; then
+        echo "Permission denied (check file permissions)"
+    elif echo "$stderr_output" | grep -q "network.*error\|connection.*failed"; then
+        echo "Network error (check internet connection)"
+    elif echo "$stderr_output" | grep -q "disk.*full\|no space left"; then
+        echo "Insufficient disk space"
+    elif echo "$stderr_output" | grep -q "rustc.*not found"; then
+        echo "Rust compiler not found in PATH"
+    elif echo "$stderr_output" | grep -q "cargo.*not found"; then
+        echo "Cargo not found in PATH"
+    elif echo "$stderr_output" | grep -q "failed to compile"; then
+        echo "Compilation failed (check build dependencies)"
+    elif echo "$stderr_output" | grep -q "failed to download"; then
+        echo "Download failed (check network and crates.io availability)"
+    else
+        echo "Unknown build error (check full output above)"
+    fi
+}
+
 # Function to install a cargo package
 install_tool() {
     local tool_name=$1
@@ -109,11 +142,23 @@ install_tool() {
         return 0
     else
         print_status "Installing $tool_name..."
-        if cargo install "$package_name"; then
+        
+        # Create temporary file for stderr
+        local stderr_file=$(mktemp)
+        
+        # Run cargo install and capture stderr
+        if cargo install "$package_name" 2>"$stderr_file"; then
             print_success "$tool_name installed successfully!"
+            rm -f "$stderr_file"
             return 0
         else
+            # Analyze the failure
+            local failure_reason=$(analyze_failure "$(cat "$stderr_file")")
+            FAILED_TOOLS+=("$tool_name")
+            FAILURE_REASONS+=("$failure_reason")
+            
             print_error "Failed to install $tool_name"
+            rm -f "$stderr_file"
             return 1
         fi
     fi
@@ -129,12 +174,16 @@ declare -A TOOLS=(
     ["bacon"]="bacon|bacon|Background Rust code checker"
     ["cargo-info"]="cargo-info|cargo-info|Display crate information from crates.io"
     ["speedtest-rs"]="speedtest-rs|speedtest-rs|Command-line internet speed test"
-    ["rtx-cli"]="rtx-cli|rtx|Polyglot runtime version manager (like asdf)"
+    ["mise"]="mise|mise|Polyglot runtime version manager (like asdf, formerly rtx)"
     ["nushell"]="nu|nu|A new type of shell with structured data"
 )
 
 # Array to store selected tools
 declare -a SELECTED_TOOLS=()
+
+# Arrays to track installation results
+declare -a FAILED_TOOLS=()
+declare -a FAILURE_REASONS=()
 
 # Function to display tool selection menu
 show_selection_menu() {
@@ -144,7 +193,7 @@ show_selection_menu() {
     echo
     
     # For simple bash compatibility, we'll use a different approach
-    local tools_array=("exa" "bat" "zellij" "mprocs" "ripgrep" "bacon" "cargo-info" "speedtest-rs" "rtx-cli" "nushell")
+    local tools_array=("exa" "bat" "zellij" "mprocs" "ripgrep" "bacon" "cargo-info" "speedtest-rs" "mise" "nushell")
     local selected=()
     
     # Initialize all as selected
@@ -211,18 +260,34 @@ install_selected_tools() {
         local info="${TOOLS[$tool]}"
         IFS='|' read -r package_name command_name description <<< "$info"
         
+        print_status "Processing tool: $tool ($((installed_count + failed_count + 1)) of ${#SELECTED_TOOLS[@]})"
+        
         if install_tool "$tool" "$package_name" "$command_name"; then
-            ((installed_count++))
+            ((installed_count++)) || true
         else
-            ((failed_count++))
+            ((failed_count++)) || true
         fi
         echo
     done
     
     print_header "Installation Summary"
-    print_success "Successfully installed: $installed_count tools"
+    
+    if [ $installed_count -gt 0 ]; then
+        print_success "Successfully installed: $installed_count tools"
+    fi
+    
     if [ $failed_count -gt 0 ]; then
         print_error "Failed to install: $failed_count tools"
+        echo
+        echo "${BOLD}Failure Details:${NC}"
+        for i in "${!FAILED_TOOLS[@]}"; do
+            echo -e "  ${RED}•${NC} ${BOLD}${FAILED_TOOLS[$i]}${NC}: ${FAILURE_REASONS[$i]}"
+        done
+        echo
+        echo "${BOLD}Common Solutions:${NC}"
+        echo "  • For OpenSSL/pkg-config errors: sudo apt install pkg-config libssl-dev"
+        echo "  • For compiler errors: sudo apt install build-essential"
+        echo "  • For network errors: check internet connection and try again"
     fi
 }
 
@@ -261,9 +326,9 @@ show_usage_tips() {
             "speedtest-rs")
                 echo "  • speedtest-rs     : Run internet speed test"
                 ;;
-            "rtx-cli")
-                echo "  • rtx install rust : Install Rust version"
-                echo "  • rtx use rust@1.75 : Use specific Rust version"
+            "mise")
+                echo "  • mise install rust : Install Rust version"
+                echo "  • mise use rust@1.75 : Use specific Rust version"
                 ;;
             "nushell")
                 echo "  • nu               : Start Nushell interactive session"
@@ -286,7 +351,7 @@ main() {
     echo
     
     # Check for command line arguments
-    if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
+    if [ "${1:-}" == "--help" ] || [ "${1:-}" == "-h" ]; then
         echo "Usage: $0 [options]"
         echo "Options:"
         echo "  --all            Install all tools without prompting"
@@ -298,9 +363,9 @@ main() {
     check_rust_installation
     
     # Handle --all flag
-    if [ "$1" == "--all" ]; then
+    if [ "${1:-}" == "--all" ]; then
         print_status "Installing all tools..."
-        SELECTED_TOOLS=("exa" "bat" "zellij" "mprocs" "ripgrep" "bacon" "cargo-info" "speedtest-rs" "rtx-cli" "nushell")
+        SELECTED_TOOLS=("exa" "bat" "zellij" "mprocs" "ripgrep" "bacon" "cargo-info" "speedtest-rs" "mise" "nushell")
     else
         # Show selection menu
         show_selection_menu
@@ -316,7 +381,11 @@ main() {
     
     echo
     print_success "Setup complete! Happy coding with Rust! $RUST_EMOJI"
+    
+    # Remove the exit trap since we're exiting normally
+    trap - EXIT
 }
 
 # Run main function
 main "$@"
+exit 0
