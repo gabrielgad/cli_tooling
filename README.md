@@ -1,6 +1,6 @@
 # Rust Development Tools Installer
 
-A cross-platform installer for essential Rust development tools that works on Windows (PowerShell), macOS, and Linux.
+A cross-platform installer for essential Rust development tools with intelligent environment detection, enhanced logging, and comprehensive error analysis. Works on Windows (PowerShell), macOS, Linux, WSL, and various terminal environments.
 
 ## 🚀 Quick Start
 
@@ -44,7 +44,7 @@ Simply run the installer without arguments for an interactive selection menu:
 | **bacon** | `bacon` | Background Rust code checker - shows errors as you code |
 | **cargo-info** | `cargo info` | Display detailed information about crates from crates.io |
 | **speedtest-rs** | `speedtest-rs` | Command-line internet speed test |
-| **rtx-cli** | `rtx` | Polyglot runtime version manager (manage multiple Rust/Node/Python versions) |
+| **mise** | `mise` | Polyglot runtime version manager (manage multiple Rust/Node/Python versions) - formerly rtx |
 | **nushell** | `nu` | A new type of shell with structured data and powerful features |
 
 ## 🔧 Prerequisites
@@ -151,12 +151,12 @@ speedtest-rs         # Run speed test
 speedtest-rs --json  # JSON output
 ```
 
-### rtx - Runtime manager
+### mise - Runtime manager
 
 ```bash
-rtx install rust     # Install latest Rust
-rtx use rust@1.75    # Use specific version
-rtx list             # Show installed versions
+mise install rust     # Install latest Rust
+mise use rust@1.75    # Use specific version
+mise list             # Show installed versions
 ```
 
 ### nushell - Modern shell
@@ -166,6 +166,25 @@ nu                   # Start Nushell session
 nu script.nu         # Run Nushell script
 ls | where size > 1KB # Example structured data query
 ```
+
+## ✨ New Features
+
+### Enhanced Environment Detection
+- **WSL Support**: Automatically detects and works within Windows Subsystem for Linux
+- **Terminal Compatibility**: Smart emoji support detection with fallbacks for older terminals
+- **Cross-Environment**: Handles VSCode→WSL→MinGW execution chains seamlessly
+- **Debug Mode**: Use `INSTALLER_EMOJI_SUPPORT=0` to disable emojis for compatibility
+
+### Improved Error Handling
+- **Detailed Failure Analysis**: Provides specific reasons for installation failures
+- **Common Solutions**: Suggests fixes for typical build issues
+- **Progress Tracking**: Shows installation progress with enhanced logging
+- **Graceful Failures**: Continues installing other tools even if one fails
+
+### Better User Experience
+- **Visual Feedback**: Color-coded output with emoji support detection
+- **Installation Summary**: Clear success/failure reporting with suggested solutions
+- **Tool Tracking**: Shows current tool being processed with progress indicators
 
 ## 🔍 Troubleshooting
 
@@ -206,6 +225,27 @@ The installer will skip tools that are already installed. To reinstall, first un
 ```bash
 cargo uninstall <tool-name>
 ```
+
+### Common Build Errors
+
+The installer now provides detailed analysis for common failures:
+
+- **OpenSSL/pkg-config errors**: Install development libraries
+  ```bash
+  sudo apt install pkg-config libssl-dev
+  ```
+- **Compiler errors**: Install build essentials
+  ```bash
+  sudo apt install build-essential
+  ```
+- **Network errors**: Check internet connection and crates.io availability
+- **Permission errors**: Check file permissions and cargo home directory
+- **Disk space**: Ensure sufficient space for compilation
+
+### Environment Variables
+
+- `INSTALLER_EMOJI_SUPPORT=0`: Disable emoji output for terminal compatibility
+- Standard cargo environment variables are respected
 
 ## 🤝 Contributing
 
