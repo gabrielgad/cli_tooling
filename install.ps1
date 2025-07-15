@@ -1,9 +1,31 @@
 # Rust Development Tools Installer - PowerShell Version
-# This script installs selected Rust-based development tools
+# This script installs selected Rust-based development tools with emoji support detection
 
 # Enable strict mode
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+
+# Check for emoji support
+param(
+    [switch]$NoEmoji
+)
+
+# Set emoji variables
+if ($NoEmoji) {
+    $global:RustEmoji = "[RUST]"
+    $global:SuccessEmoji = "[OK]"
+    $global:ErrorEmoji = "[ERROR]"
+    $global:WarningEmoji = "[WARN]"
+    $global:InfoEmoji = "[INFO]"
+    $global:ToolEmoji = "[TOOL]"
+} else {
+    $global:RustEmoji = "🦀"
+    $global:SuccessEmoji = "✅"
+    $global:ErrorEmoji = "❌"
+    $global:WarningEmoji = "⚠️"
+    $global:InfoEmoji = "ℹ️"
+    $global:ToolEmoji = "🔧"
+}
 
 # Color functions
 function Write-Status {
@@ -149,10 +171,15 @@ $Tools = @{
         Command = "rtx"
         Description = "Polyglot runtime version manager (like asdf)"
     }
+    "nushell" = @{
+        Package = "nu"
+        Command = "nu"
+        Description = "A new type of shell with structured data"
+    }
 }
 
 # Tool order for display
-$ToolOrder = @("exa", "bat", "zellij", "mprocs", "ripgrep", "bacon", "cargo-info", "speedtest-rs", "rtx-cli")
+$ToolOrder = @("exa", "bat", "zellij", "mprocs", "ripgrep", "bacon", "cargo-info", "speedtest-rs", "rtx-cli", "nushell")
 
 # Function to display tool selection menu
 function Show-SelectionMenu {
@@ -283,6 +310,10 @@ function Show-UsageTips {
                 Write-Host "  • rtx install rust : Install Rust version"
                 Write-Host "  • rtx use rust@1.75 : Use specific Rust version"
             }
+            "nushell" {
+                Write-Host "  • nu               : Start Nushell interactive session"
+                Write-Host "  • nu script.nu     : Run Nushell script"
+            }
         }
     }
 }
@@ -331,7 +362,7 @@ function Main {
     }
     
     Write-Host ""
-    Write-Success "Setup complete! Happy coding with Rust! 🦀"
+    Write-Success "Setup complete! Happy coding with Rust! $global:RustEmoji"
 }
 
 # Run main function

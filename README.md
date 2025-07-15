@@ -45,6 +45,7 @@ Simply run the installer without arguments for an interactive selection menu:
 | **cargo-info** | `cargo info` | Display detailed information about crates from crates.io |
 | **speedtest-rs** | `speedtest-rs` | Command-line internet speed test |
 | **rtx-cli** | `rtx` | Polyglot runtime version manager (manage multiple Rust/Node/Python versions) |
+| **nushell** | `nu` | A new type of shell with structured data and powerful features |
 
 ## 🔧 Prerequisites
 
@@ -156,6 +157,14 @@ speedtest-rs --json  # JSON output
 rtx install rust     # Install latest Rust
 rtx use rust@1.75    # Use specific version
 rtx list             # Show installed versions
+```
+
+### nushell - Modern shell
+
+```bash
+nu                   # Start Nushell session
+nu script.nu         # Run Nushell script
+ls | where size > 1KB # Example structured data query
 ```
 
 ## 🔍 Troubleshooting

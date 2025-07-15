@@ -1,9 +1,15 @@
 #!/bin/bash
 
 # Rust Development Tools Installer - Bash Version
-# This script installs selected Rust-based development tools
+# This script installs selected Rust-based development tools with emoji support detection
 
 set -e  # Exit on error
+
+# Detect emoji support
+SUPPORTS_EMOJI="true"
+if [ "${INSTALLER_EMOJI_SUPPORT}" = "0" ]; then
+    SUPPORTS_EMOJI="false"
+fi
 
 # Colors for output (check if terminal supports colors)
 if [ -t 1 ] && [ -n "$(tput colors)" ] && [ "$(tput colors)" -ge 8 ]; then
@@ -22,6 +28,23 @@ else
     CYAN=''
     BOLD=''
     NC=''
+fi
+
+# Emoji and fallback versions
+if [ "$SUPPORTS_EMOJI" = "true" ]; then
+    RUST_EMOJI="🦀"
+    SUCCESS_EMOJI="✅"
+    ERROR_EMOJI="❌"
+    WARNING_EMOJI="⚠️"
+    INFO_EMOJI="ℹ️"
+    TOOL_EMOJI="🔧"
+else
+    RUST_EMOJI="[RUST]"
+    SUCCESS_EMOJI="[OK]"
+    ERROR_EMOJI="[ERROR]"
+    WARNING_EMOJI="[WARN]"
+    INFO_EMOJI="[INFO]"
+    TOOL_EMOJI="[TOOL]"
 fi
 
 # Function to print colored output
@@ -107,6 +130,7 @@ declare -A TOOLS=(
     ["cargo-info"]="cargo-info|cargo-info|Display crate information from crates.io"
     ["speedtest-rs"]="speedtest-rs|speedtest-rs|Command-line internet speed test"
     ["rtx-cli"]="rtx-cli|rtx|Polyglot runtime version manager (like asdf)"
+    ["nushell"]="nu|nu|A new type of shell with structured data"
 )
 
 # Array to store selected tools
@@ -120,7 +144,7 @@ show_selection_menu() {
     echo
     
     # For simple bash compatibility, we'll use a different approach
-    local tools_array=("exa" "bat" "zellij" "mprocs" "ripgrep" "bacon" "cargo-info" "speedtest-rs" "rtx-cli")
+    local tools_array=("exa" "bat" "zellij" "mprocs" "ripgrep" "bacon" "cargo-info" "speedtest-rs" "rtx-cli" "nushell")
     local selected=()
     
     # Initialize all as selected
@@ -241,6 +265,10 @@ show_usage_tips() {
                 echo "  • rtx install rust : Install Rust version"
                 echo "  • rtx use rust@1.75 : Use specific Rust version"
                 ;;
+            "nushell")
+                echo "  • nu               : Start Nushell interactive session"
+                echo "  • nu script.nu     : Run Nushell script"
+                ;;
         esac
     done
 }
@@ -272,7 +300,7 @@ main() {
     # Handle --all flag
     if [ "$1" == "--all" ]; then
         print_status "Installing all tools..."
-        SELECTED_TOOLS=("exa" "bat" "zellij" "mprocs" "ripgrep" "bacon" "cargo-info" "speedtest-rs" "rtx-cli")
+        SELECTED_TOOLS=("exa" "bat" "zellij" "mprocs" "ripgrep" "bacon" "cargo-info" "speedtest-rs" "rtx-cli" "nushell")
     else
         # Show selection menu
         show_selection_menu
@@ -287,7 +315,7 @@ main() {
     fi
     
     echo
-    print_success "Setup complete! Happy coding with Rust! 🦀"
+    print_success "Setup complete! Happy coding with Rust! $RUST_EMOJI"
 }
 
 # Run main function
